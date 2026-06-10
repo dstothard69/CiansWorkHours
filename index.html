@@ -18,18 +18,18 @@
     table{width:100%;border-collapse:collapse;margin-top:12px;background:#fff} th,td{border-bottom:1px solid var(--line);padding:9px;text-align:left;font-size:13px} th{background:#f1f5f9}.number{text-align:right}.backup{background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px;margin-top:12px}
     .version{display:inline-block;background:#dcfce7;color:#166534;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700;margin-bottom:10px}.footer{font-size:12px;color:var(--muted);margin-top:10px}
     @media(max-width:760px){.grid,.row,.row3{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr} main{padding:10px}.card{padding:13px} table{font-size:12px} th,td{padding:7px}.hideMobile{display:none}}
-    @media print{body{background:white} header,.no-print,.buttons{display:none!important} main{max-width:none;padding:0}.card{box-shadow:none;border:0}.print-only{display:block!important} table{page-break-inside:auto} tr{page-break-inside:avoid}.stats{grid-template-columns:repeat(4,1fr)}}
+    @media print{body{background:white} header,.no-print,.buttons{display:none!important} main{max-width:none;padding:0}.card{box-shadow:none;border:0}.print-only{display:block!important} table{page-break-inside:auto} tr{page-break-inside:avoid}.stats{grid-template-columns:repeat(4,1fr)}.hideMobile{display:table-cell!important}}
     .print-only{display:none}
   </style>
 </head>
 <body>
 <header>
   <h1>Monthly Hours Log</h1>
-  <p>Hourly rate build v4: records hours, calculates estimated gross pay, and exports payroll reports.</p>
+  <p>Hourly rate build v5: records hours, calculates estimated gross pay, and exports payroll reports.</p>
 </header>
 <main>
   <section class="card no-print">
-    <span class="version">HOURLY RATE FIELD INCLUDED - v4</span>
+    <span class="version">HOURLY RATE FIELD INCLUDED - v5</span>
     <h2>Your details</h2>
     <div class="row">
       <div><label for="employeeName">Employee name</label><input id="employeeName" placeholder="e.g. Damian Stothard"></div>
@@ -40,7 +40,7 @@
       <div class="rateBox"><label for="hourlyRate">Hourly rate (£ per hour)</label><input id="hourlyRate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 15.50"><div class="small">This is used for estimated gross pay.</div></div>
     </div>
     <div class="buttons"><button id="saveSettingsBtn">Save details and hourly rate</button><button class="light" id="sampleBtn">Add sample month</button><button class="danger" id="clearAllBtn">Clear all data</button></div>
-    <div class="backup"><strong>Backup protection</strong><label style="font-weight:400;display:flex;gap:8px;align-items:flex-start"><input id="promptBackupAfterChange" type="checkbox" style="width:auto;margin-top:3px" checked>Prompt me to export a JSON backup every time I save or change my hours.</label><p id="lastBackupStatus" class="small">Last JSON backup: not yet exported from this browser.</p></div>
+    <div class="backup"><strong>Backup protection</strong><label style="font-weight:400;display:flex;gap:8px;align-items:flex-start"><input id="promptBackupAfterChange" type="checkbox" style="width:auto;margin-top:3px" checked>Prompt me to export a JSON backup every time I save or change my hours.</label><p class="small">JSON backups now use the same filename each time: <strong>hours-backup-latest.json</strong>. Your phone/browser may ask whether to replace it.</p><p id="lastBackupStatus" class="small">Last JSON backup: not yet exported from this browser.</p></div>
     <p class="footer">Data is saved only in this browser on this device. Clearing Safari website data can remove it, so keep JSON backups in Files/iCloud Drive.</p>
   </section>
 
@@ -66,7 +66,6 @@
     <p id="employeeLine" class="small"></p>
     <div class="stats"><div class="stat">Total days<strong id="totalDays">0</strong></div><div class="stat">Total hours<strong id="totalHours">0.00</strong></div><div class="stat">Hourly rate<strong id="rateDisplay">£0.00</strong></div><div class="stat">Estimated gross pay<strong id="totalPay">£0.00</strong></div></div>
     <table><thead><tr><th>Date</th><th>Day</th><th>Start</th><th>End</th><th class="hideMobile">Break</th><th>Type</th><th class="number">Hours</th><th class="number">Rate</th><th class="number">Amount</th><th class="hideMobile">Notes</th><th class="no-print">Action</th></tr></thead><tbody id="entryRows"></tbody></table>
-    <p class="print-only">Employee signature: ___________________________ &nbsp;&nbsp; Manager signature: ___________________________</p>
   </section>
 </main>
 <script>
@@ -93,11 +92,11 @@ function render(){const m=qs('monthSelect').value||currentMonth();qs('monthSelec
 function escapeHtml(str){return String(str).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function csvEscape(v){v=v==null?'':String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
 function exportCSV(){const m=qs('monthSelect').value||currentMonth(),s=loadSettings(),rate=currentRate(),rows=getMonthEntries();const totalHours=rows.reduce((sum,e)=>sum+(Number(e.hours)||0),0);const lines=[['Monthly Hours Log'],['Month',monthName(m)],['Employee',s.employeeName||''],['Payroll Ref',s.employeeRef||''],['Department',s.department||''],['Hourly Rate',rate?money(rate):''],['Total Hours',totalHours.toFixed(2)],['Estimated Gross Pay',rate?money(totalHours*rate):''],[],['Date','Day','Start','End','Break Minutes','Work Type','Hours','Hourly Rate','Amount','Notes']];rows.forEach(e=>lines.push([dateFmt(e.date),dayName(e.date),e.start||'',e.end||'',e.breakMins||0,e.workType||'',(Number(e.hours)||0).toFixed(2),rate?money(rate):'',rate?money((Number(e.hours)||0)*rate):'',e.notes||'']));downloadText(lines.map(r=>r.map(csvEscape).join(',')).join('\n'),`hours-${m}.csv`,'text/csv')}
-function backupObject(){return{app:'Monthly Hours Log',version:'v4-hourly-rate',exportedAt:new Date().toISOString(),settings:loadSettings(),entries}}
-function exportJSON(auto=false){downloadText(JSON.stringify(backupObject(),null,2),`hours-backup-${new Date().toISOString().replace(/[:.]/g,'-')}.json`,'application/json');localStorage.setItem(BACKUP_META_KEY,JSON.stringify({exportedAt:new Date().toISOString(),entryCount:entries.length}));updateBackupStatus();if(!auto)flash('JSON backup exported.')}
+function backupObject(){return{app:'Monthly Hours Log',version:'v5-hourly-rate-backup-print-fix',exportedAt:new Date().toISOString(),settings:loadSettings(),entries}}
+function exportJSON(auto=false){downloadText(JSON.stringify(backupObject(),null,2),'hours-backup-latest.json','application/json');localStorage.setItem(BACKUP_META_KEY,JSON.stringify({exportedAt:new Date().toISOString(),entryCount:entries.length}));updateBackupStatus();if(!auto)flash('JSON backup exported as hours-backup-latest.json.')}
 function downloadText(text,filename,type){const blob=new Blob([text],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function maybePromptBackup(msg){if(loadSettings().promptBackupAfterChange!==false){setTimeout(()=>{if(confirm(msg))exportJSON(true)},150)}}
-function updateBackupStatus(){try{const meta=JSON.parse(localStorage.getItem(BACKUP_META_KEY));qs('lastBackupStatus').textContent=meta&&meta.exportedAt?`Last JSON backup: ${new Date(meta.exportedAt).toLocaleString('en-GB')} (${meta.entryCount||0} entries).`:'Last JSON backup: not yet exported from this browser.'}catch{}}
+function updateBackupStatus(){try{const meta=JSON.parse(localStorage.getItem(BACKUP_META_KEY));qs('lastBackupStatus').textContent=meta&&meta.exportedAt?`Last JSON backup: ${new Date(meta.exportedAt).toLocaleString('en-GB')} (${meta.entryCount||0} entries). Filename: hours-backup-latest.json.`:'Last JSON backup: not yet exported from this browser.'}catch{}}
 function importJSON(file){const reader=new FileReader();reader.onload=()=>{try{const data=JSON.parse(reader.result);if(!Array.isArray(data.entries))throw new Error('No entries found');entries=data.entries;saveEntries();if(data.settings){localStorage.setItem(SETTINGS_KEY,JSON.stringify({...loadSettings(),...data.settings}))}setSettingsFields();render();flash('Backup imported.');maybePromptBackup('Backup imported. Export a fresh JSON backup now?')}catch(e){flash('Could not import this backup file.',true)}};reader.readAsText(file)}
 function addSample(){const m=qs('monthSelect').value||currentMonth();entries=entries.filter(e=>!e.date.startsWith(m));for(let i=1;i<=5;i++){const date=`${m}-${pad(i)}`;entries.push({date,start:'09:00',end:'17:00',breakMins:30,manualHours:'',workType:'Standard',notes:'Sample entry',hours:7.5})}saveEntries();render();maybePromptBackup('Sample entries added. Export a JSON backup now?')}
 function clearAll(){if(!confirm('This clears all locally saved entries and settings. Continue?'))return;localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(SETTINGS_KEY);entries=[];setSettingsFields();resetForm();render();flash('All data cleared.')} 
